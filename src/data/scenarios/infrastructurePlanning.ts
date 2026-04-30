@@ -1,0 +1,52 @@
+import type { DemoScenario } from "../../types/demo";
+
+export const infrastructurePlanningScenario: DemoScenario = {
+  id: "infrastructure-planning",
+  title: "Infrastructure Planning",
+  shortTitle: "Planning",
+  category: "Presentation",
+  region: "Development site",
+  summary: "A guided infrastructure story from site selection to stakeholder-ready report.",
+  businessValue:
+    "Helps planning teams present project boundaries, constraints, access corridors, and assets in one 3D briefing.",
+  objects: [],
+  routes: [],
+  zones: [],
+  cameraTargets: [],
+  chapters: [
+    {
+      id: "development-site",
+      title: "Show Development Site",
+      shortTitle: "Site",
+      description: "Introduce the project location before adding constraints or assets.",
+      businessInsight: "Stakeholder presentations need a clean spatial starting point.",
+      visibleObjects: [],
+      visibleRoutes: [],
+      visibleZones: [],
+      selectedObjectId: "",
+      cameraMode: "global",
+      cameraTargetId: "",
+      actions: [],
+    },
+    {
+      id: "stakeholder-report",
+      title: "Generate Stakeholder Report",
+      shortTitle: "Report",
+      description: "Summarize boundaries, constraints, access, and proposed infrastructure assets.",
+      businessInsight: "The final chapter should translate planning complexity into an executive-ready view.",
+      visibleObjects: [],
+      visibleRoutes: [],
+      visibleZones: [],
+      selectedObjectId: "",
+      cameraMode: "report",
+      cameraTargetId: "",
+      actions: [],
+    },
+  ],
+  report: {
+    title: "Infrastructure planning report",
+    summary: "Infrastructure scenario placeholder.",
+    metrics: [],
+    recommendation: "Replace this skeleton with the full authored planning story in Milestone 6.",
+  },
+};
