@@ -1,0 +1,52 @@
+import type { DemoScenario } from "../../types/demo";
+
+export const coverageAnalysisScenario: DemoScenario = {
+  id: "coverage-analysis",
+  title: "Coverage Analysis",
+  shortTitle: "Coverage",
+  category: "Analysis",
+  region: "Observation area",
+  summary: "A guided coverage story from area definition to relay-backed report.",
+  businessValue:
+    "Helps technical and executive teams understand visibility, coverage, and relay decisions through a staged 3D analysis.",
+  objects: [],
+  routes: [],
+  zones: [],
+  cameraTargets: [],
+  chapters: [
+    {
+      id: "area-of-interest",
+      title: "Define Area of Interest",
+      shortTitle: "Area",
+      description: "Start with a clean area before showing tower, target, beam, or relay elements.",
+      businessInsight: "Coverage analysis is easier to trust when the system builds the evidence step by step.",
+      visibleObjects: [],
+      visibleRoutes: [],
+      visibleZones: [],
+      selectedObjectId: "",
+      cameraMode: "global",
+      cameraTargetId: "",
+      actions: [],
+    },
+    {
+      id: "coverage-report",
+      title: "Generate Coverage Report",
+      shortTitle: "Report",
+      description: "Summarize tower placement, target ridge, line of sight, coverage ring, and relay support.",
+      businessInsight: "The final view should explain what is visible, what is blocked, and where a relay helps.",
+      visibleObjects: [],
+      visibleRoutes: [],
+      visibleZones: [],
+      selectedObjectId: "",
+      cameraMode: "report",
+      cameraTargetId: "",
+      actions: [],
+    },
+  ],
+  report: {
+    title: "Coverage analysis report",
+    summary: "Coverage scenario placeholder.",
+    metrics: [],
+    recommendation: "Replace this skeleton with the full authored coverage story in Milestone 6.",
+  },
+};
