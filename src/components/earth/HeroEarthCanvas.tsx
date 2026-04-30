@@ -35,6 +35,7 @@ type HeroEarthCanvasProps = {
   selectedObjectId: string;
   onSelectObject: (id: string) => void;
   progress: number;
+  isPlaying?: boolean;
 };
 
 function c(hex: string, alpha = 1) {
@@ -125,6 +126,34 @@ function centerOfRoute(scenario: Scenario, route: ScenarioRoute) {
     lat: (from.lat + to.lat) / 2,
     lon: (from.lon + to.lon) / 2,
   };
+}
+
+function activeMotionRoute(scenario: Scenario, progress: number) {
+  const phase = scenario.phaseScripts[phaseIndexForProgress(scenario, progress)];
+
+  if (phase?.cameraTargetId) {
+    const phaseRoute = findRoute(scenario, phase.cameraTargetId);
+    if (phaseRoute) return phaseRoute;
+  }
+
+  if (phase?.selectObjectId) {
+    const selectedRoute = findRoute(scenario, phase.selectObjectId);
+    if (selectedRoute) return selectedRoute;
+  }
+
+  if (scenario.id === "emergency-response") {
+    return findRoute(scenario, "unit-response-route") || scenario.routes[0];
+  }
+
+  if (scenario.id === "infrastructure-planning") {
+    return findRoute(scenario, "corridor-main") || scenario.routes[0];
+  }
+
+  if (scenario.id === "strategic-route") {
+    return findRoute(scenario, "route-main") || scenario.routes[0];
+  }
+
+  return scenario.routes[0];
 }
 
 function getPositionById(scenario: Scenario, id: string) {
@@ -434,7 +463,7 @@ function addRouteEntity(
 }
 
 function movingMarkerPosition(scenario: Scenario, progress: number) {
-  const route = scenario.routes[0];
+  const route = activeMotionRoute(scenario, progress);
   if (!route) return undefined;
 
   const from = findObject(scenario, route.fromObjectId);
@@ -509,33 +538,41 @@ function currentCameraTarget(
   scenario: Scenario,
   cameraMode: CameraMode,
   selectedObjectId: string,
-  progress: number
+  progress: number,
+  isPlaying = false
 ) {
   const phaseIndex = phaseIndexForProgress(scenario, progress);
   const phase = scenario.phaseScripts[phaseIndex];
-
-  if (phase.cameraMode === "follow" || cameraMode === "follow") {
-    const moving = movingMarkerPosition(scenario, progress);
-    if (moving) return { lat: moving.lat, lon: moving.lon };
-  }
 
   const explicitTarget = getPositionById(
     scenario,
     phase.cameraTargetId || selectedObjectId
   );
 
+  const selectedTarget = getPositionById(scenario, selectedObjectId);
+
+  const canFollowMovingMarker =
+    isPlaying &&
+    cameraMode === "follow" &&
+    scenario.id !== "observation-coverage";
+
+  if (canFollowMovingMarker) {
+    const moving = movingMarkerPosition(scenario, progress);
+    if (moving) return { lat: moving.lat, lon: moving.lon };
+  }
+
   if (explicitTarget) return explicitTarget;
+  if (selectedTarget) return selectedTarget;
 
   return scenario.cameraTargets[cameraMode];
 }
 
 function activeCameraMode(
-  scenario: Scenario,
+  _scenario: Scenario,
   requestedMode: CameraMode,
-  progress: number
+  _progress: number
 ): CameraMode {
-  const phase = scenario.phaseScripts[phaseIndexForProgress(scenario, progress)];
-  return requestedMode === "focus" ? phase.cameraMode : requestedMode;
+  return requestedMode;
 }
 
 function cameraDistance(scenario: Scenario, mode: CameraMode) {
@@ -544,7 +581,7 @@ function cameraDistance(scenario: Scenario, mode: CameraMode) {
 
 function pitchFor(mode: CameraMode) {
   if (mode === "global") return CesiumMath.toRadians(-82);
-  if (mode === "report") return CesiumMath.toRadians(-88);
+  if (mode === "report") return CesiumMath.toRadians(-62);
   if (mode === "follow") return CesiumMath.toRadians(-43);
   return CesiumMath.toRadians(-52);
 }
@@ -556,6 +593,7 @@ export function HeroEarthCanvas({
   selectedObjectId,
   onSelectObject,
   progress,
+  isPlaying = false,
 }: HeroEarthCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<Viewer | null>(null);
@@ -721,13 +759,19 @@ export function HeroEarthCanvas({
     if (!viewer || !ready) return;
 
     const mode = activeCameraMode(scenario, cameraMode, progress);
-    const target = currentCameraTarget(scenario, cameraMode, selectedObjectId, progress);
+    const target = currentCameraTarget(
+      scenario,
+      mode,
+      selectedObjectId,
+      progress,
+      isPlaying
+    );
     const distance = cameraDistance(scenario, mode);
 
     const phaseChanged = lastPhaseRef.current !== phaseIndex;
     lastPhaseRef.current = phaseIndex;
 
-    if (mode === "follow" && !phaseChanged) {
+    if (mode === "follow" && isPlaying && !phaseChanged) {
       viewer.camera.setView({
         destination: Cartesian3.fromDegrees(target.lon, target.lat, distance),
         orientation: {
@@ -759,6 +803,7 @@ export function HeroEarthCanvas({
     phaseIndex,
     phase.name,
     phase.description,
+    isPlaying,
   ]);
 
   function setOSM() {

@@ -3,6 +3,7 @@ import { Globe2 } from "lucide-react";
 import { scenarios, getScenarioById } from "../../data/scenarios";
 import type {
   CameraMode,
+  Scenario,
   ScenarioId,
   ScenarioLayerKey,
   ScenarioLayers,
@@ -13,6 +14,97 @@ import { ScenarioInspector } from "./ScenarioInspector";
 import { ScenarioTimeline } from "./ScenarioTimeline";
 
 const PLAY_DURATION_MS = 14000;
+
+const emergencyStorySteps = [
+  {
+    name: "01 · City Anomaly",
+    description:
+      "A new heat signature appears inside the city. The map starts clean so the user first understands where the emergency begins.",
+    objects: ["incident-core"],
+    routes: [],
+    zones: [],
+  },
+  {
+    name: "02 · Sensor Confirmation",
+    description:
+      "The detection is confirmed. Danger and warning rings are created around the incident before response assets appear.",
+    objects: ["incident-core"],
+    routes: [],
+    zones: ["danger-zone", "warning-zone"],
+  },
+  {
+    name: "03 · Command Dispatch",
+    description:
+      "The command center comes online and receives the alert. The first dispatch connection is drawn from command to the incident.",
+    objects: ["incident-core", "command-center"],
+    routes: ["dispatch-route"],
+    zones: ["danger-zone", "warning-zone"],
+  },
+  {
+    name: "04 · Response Unit Moving",
+    description:
+      "Response Unit A is activated and moves along the primary response route toward the incident core.",
+    objects: ["incident-core", "command-center", "response-unit-a"],
+    routes: ["dispatch-route", "unit-response-route"],
+    zones: ["danger-zone", "warning-zone"],
+  },
+  {
+    name: "05 · Support Arrives",
+    description:
+      "Medical and evacuation support nodes appear after the response route is established, showing the operation expanding step by step.",
+    objects: [
+      "incident-core",
+      "command-center",
+      "response-unit-a",
+      "medical-point",
+      "evacuation-node",
+    ],
+    routes: ["dispatch-route", "unit-response-route", "medical-support-route"],
+    zones: ["danger-zone", "warning-zone"],
+  },
+  {
+    name: "06 · Operational Report",
+    description:
+      "The final view shows the complete response picture: incident, risk rings, command, unit, medical support, evacuation node, and all routes.",
+    objects: [
+      "incident-core",
+      "command-center",
+      "response-unit-a",
+      "medical-point",
+      "evacuation-node",
+    ],
+    routes: ["dispatch-route", "unit-response-route", "medical-support-route"],
+    zones: ["danger-zone", "warning-zone"],
+  },
+];
+
+function phaseIndexForProgress(phaseCount: number, progress: number) {
+  return Math.min(
+    phaseCount - 1,
+    Math.floor(Math.min(progress, 0.999) * phaseCount)
+  );
+}
+
+function createStoryScenario(scenario: Scenario, phaseIndex: number): Scenario {
+  if (scenario.id !== "emergency-response") return scenario;
+
+  const step = emergencyStorySteps[phaseIndex] || emergencyStorySteps[0];
+  const visibleObjects = new Set(step.objects);
+  const visibleRoutes = new Set(step.routes);
+  const visibleZones = new Set(step.zones);
+
+  return {
+    ...scenario,
+    phaseScripts: scenario.phaseScripts.map((phase, index) => ({
+      ...phase,
+      name: emergencyStorySteps[index]?.name || phase.name,
+      description: emergencyStorySteps[index]?.description || phase.description,
+    })),
+    objects: scenario.objects.filter((object) => visibleObjects.has(object.id)),
+    routes: scenario.routes.filter((route) => visibleRoutes.has(route.id)),
+    zones: scenario.zones.filter((zone) => visibleZones.has(zone.id)),
+  };
+}
 
 export function ScenarioDemo() {
   const [activeScenarioId, setActiveScenarioId] =
@@ -31,18 +123,37 @@ export function ScenarioDemo() {
     scenarios[0].defaultSelectedObjectId
   );
 
-  const [cameraMode, setCameraMode] = useState<CameraMode>("focus");
+  const [cameraMode, setCameraMode] = useState<CameraMode>(
+    scenarios[0].phaseScripts[0]?.cameraMode ?? "focus"
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  const activePhaseIndex = Math.min(
-    activeScenario.phases.length - 1,
-    Math.floor(progress * activeScenario.phases.length)
+  const activePhaseIndex = phaseIndexForProgress(
+    activeScenario.phaseScripts.length,
+    progress
   );
 
+  const storyScenario = useMemo(
+    () => createStoryScenario(activeScenario, activePhaseIndex),
+    [activeScenario, activePhaseIndex]
+  );
+
+  const activePhaseScript =
+    storyScenario.phaseScripts[activePhaseIndex] || storyScenario.phaseScripts[0];
+
   const selectedObject =
+    storyScenario.objects.find((object) => object.id === selectedObjectId) ||
     activeScenario.objects.find((object) => object.id === selectedObjectId) ||
+    storyScenario.objects[0] ||
     activeScenario.objects[0];
+
+  useEffect(() => {
+    if (!isPlaying || !activePhaseScript) return;
+
+    setSelectedObjectId(activePhaseScript.selectObjectId);
+    setCameraMode(activePhaseScript.cameraMode);
+  }, [isPlaying, activePhaseIndex, activePhaseScript]);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -75,11 +186,12 @@ export function ScenarioDemo() {
 
   function selectScenario(id: ScenarioId) {
     const scenario = getScenarioById(id);
+    const firstPhase = scenario.phaseScripts[0];
 
     setActiveScenarioId(id);
     setLayers(scenario.defaultLayers);
-    setSelectedObjectId(scenario.defaultSelectedObjectId);
-    setCameraMode("focus");
+    setSelectedObjectId(firstPhase?.selectObjectId || scenario.defaultSelectedObjectId);
+    setCameraMode(firstPhase?.cameraMode || "focus");
     setProgress(0);
     setIsPlaying(false);
   }
@@ -92,16 +204,22 @@ export function ScenarioDemo() {
   }
 
   function resetScenario() {
+    const firstPhase = activeScenario.phaseScripts[0];
+
     setLayers(activeScenario.defaultLayers);
-    setSelectedObjectId(activeScenario.defaultSelectedObjectId);
-    setCameraMode("focus");
+    setSelectedObjectId(firstPhase?.selectObjectId || activeScenario.defaultSelectedObjectId);
+    setCameraMode(firstPhase?.cameraMode || "focus");
     setProgress(0);
     setIsPlaying(false);
   }
 
   function jumpToPhase(index: number) {
-    const denominator = Math.max(1, activeScenario.phases.length - 1);
+    const denominator = Math.max(1, activeScenario.phaseScripts.length - 1);
+    const phase = activeScenario.phaseScripts[index];
+
     setProgress(index / denominator);
+    setSelectedObjectId(phase?.selectObjectId || activeScenario.defaultSelectedObjectId);
+    setCameraMode(phase?.cameraMode || "focus");
     setIsPlaying(false);
   }
 
@@ -153,25 +271,26 @@ export function ScenarioDemo() {
 
           <div className="min-h-[560px]">
             <HeroEarthCanvas
-              scenario={activeScenario}
+              scenario={storyScenario}
               layers={layers}
               cameraMode={cameraMode}
               selectedObjectId={selectedObjectId}
               onSelectObject={setSelectedObjectId}
               progress={progress}
+              isPlaying={isPlaying}
             />
           </div>
 
           <ScenarioInspector
-            scenario={activeScenario}
+            scenario={storyScenario}
             selectedObject={selectedObject}
-            activePhase={activeScenario.phases[activePhaseIndex]}
+            activePhase={activePhaseScript.name}
             progress={progress}
           />
         </div>
 
         <ScenarioTimeline
-          scenario={activeScenario}
+          scenario={storyScenario}
           isPlaying={isPlaying}
           progress={progress}
           activePhaseIndex={activePhaseIndex}
