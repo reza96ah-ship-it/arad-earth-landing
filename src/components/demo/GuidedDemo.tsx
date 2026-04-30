@@ -1,5 +1,5 @@
 import { demoCopy } from "../../content/demoCopy";
-import { demoScenarios } from "../../data/scenarios";
+import { demoScenarios } from "../../data/scenarios/index";
 import { DemoActions } from "./DemoActions";
 import { DemoInspector } from "./DemoInspector";
 import { DemoReportCard } from "./DemoReportCard";
