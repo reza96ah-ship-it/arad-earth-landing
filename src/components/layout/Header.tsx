@@ -1,29 +1,23 @@
-import { Globe2, Menu, ShoppingCart, X } from "lucide-react";
+import { Globe2, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../ui/Button";
 
-type HeaderProps = {
-  cartCount: number;
-  onOpenCart: () => void;
-};
-
-export function Header({ cartCount, onOpenCart }: HeaderProps) {
+export function Header() {
   const [open, setOpen] = useState(false);
 
   const links = [
-    ["Features", "#features"],
-    ["Demo", "#demo"],
-    ["Workflow", "#workflow"],
-    ["Modules", "#modules"],
-    ["Pricing", "#pricing"],
-    ["Contact", "#contact"],
+    ["Demo", "#guided-demo"],
+    ["Workflows", "#workflows"],
+    ["Engine", "#engine"],
+    ["Deployment", "#deployment"],
+    ["Use Cases", "#use-cases"],
   ];
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/10 bg-slate-950/75 backdrop-blur-xl">
+    <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5">
         <a href="#" className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-300/10">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-300/10 shadow-lg shadow-cyan-500/10">
             <Globe2 className="h-6 w-6 text-cyan-200" />
           </div>
 
@@ -35,31 +29,21 @@ export function Header({ cartCount, onOpenCart }: HeaderProps) {
 
         <nav className="hidden items-center gap-8 text-sm text-slate-300 lg:flex">
           {links.map(([label, url]) => (
-            <a key={label} href={url} className="hover:text-white">
+            <a key={label} href={url} className="transition hover:text-white">
               {label}
             </a>
           ))}
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <Button href="#demo" variant="secondary">Try Demo</Button>
-
-          <button
-            onClick={onOpenCart}
-            className="relative rounded-full border border-white/10 bg-white/10 px-4 py-3 text-white hover:bg-white/15"
-          >
-            <ShoppingCart className="h-4 w-4" />
-            {cartCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-cyan-300 text-xs font-bold text-slate-950">
-                {cartCount}
-              </span>
-            )}
-          </button>
+          <Button href="#guided-demo" variant="secondary">Launch Demo</Button>
+          <Button href="#contact">Book Walkthrough</Button>
         </div>
 
         <button
           onClick={() => setOpen((value) => !value)}
           className="rounded-xl border border-white/10 bg-white/10 p-3 lg:hidden"
+          aria-label="Toggle navigation menu"
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -79,16 +63,13 @@ export function Header({ cartCount, onOpenCart }: HeaderProps) {
               </a>
             ))}
 
-            <button
-              onClick={() => {
-                onOpenCart();
-                setOpen(false);
-              }}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-300 px-6 py-3 text-sm font-semibold text-slate-950"
+            <a
+              href="#contact"
+              onClick={() => setOpen(false)}
+              className="inline-flex items-center justify-center rounded-full bg-cyan-300 px-6 py-3 text-sm font-semibold text-slate-950"
             >
-              <ShoppingCart className="h-4 w-4" />
-              Cart
-            </button>
+              Book Walkthrough
+            </a>
           </div>
         </div>
       )}
