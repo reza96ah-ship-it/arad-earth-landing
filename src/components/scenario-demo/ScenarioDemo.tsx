@@ -14,6 +14,13 @@ import { ScenarioTimeline } from "./ScenarioTimeline";
 
 const PLAY_DURATION_MS = 14000;
 
+function phaseIndexForProgress(phaseCount: number, progress: number) {
+  return Math.min(
+    phaseCount - 1,
+    Math.floor(Math.min(progress, 0.999) * phaseCount)
+  );
+}
+
 export function ScenarioDemo() {
   const [activeScenarioId, setActiveScenarioId] =
     useState<ScenarioId>("strategic-route");
@@ -31,18 +38,30 @@ export function ScenarioDemo() {
     scenarios[0].defaultSelectedObjectId
   );
 
-  const [cameraMode, setCameraMode] = useState<CameraMode>("focus");
+  const [cameraMode, setCameraMode] = useState<CameraMode>(
+    scenarios[0].phaseScripts[0]?.cameraMode ?? "focus"
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  const activePhaseIndex = Math.min(
-    activeScenario.phases.length - 1,
-    Math.floor(progress * activeScenario.phases.length)
+  const activePhaseIndex = phaseIndexForProgress(
+    activeScenario.phaseScripts.length,
+    progress
   );
+
+  const activePhaseScript =
+    activeScenario.phaseScripts[activePhaseIndex] || activeScenario.phaseScripts[0];
 
   const selectedObject =
     activeScenario.objects.find((object) => object.id === selectedObjectId) ||
     activeScenario.objects[0];
+
+  useEffect(() => {
+    if (!isPlaying || !activePhaseScript) return;
+
+    setSelectedObjectId(activePhaseScript.selectObjectId);
+    setCameraMode(activePhaseScript.cameraMode);
+  }, [isPlaying, activePhaseIndex, activePhaseScript]);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -75,11 +94,12 @@ export function ScenarioDemo() {
 
   function selectScenario(id: ScenarioId) {
     const scenario = getScenarioById(id);
+    const firstPhase = scenario.phaseScripts[0];
 
     setActiveScenarioId(id);
     setLayers(scenario.defaultLayers);
-    setSelectedObjectId(scenario.defaultSelectedObjectId);
-    setCameraMode("focus");
+    setSelectedObjectId(firstPhase?.selectObjectId || scenario.defaultSelectedObjectId);
+    setCameraMode(firstPhase?.cameraMode || "focus");
     setProgress(0);
     setIsPlaying(false);
   }
@@ -92,16 +112,22 @@ export function ScenarioDemo() {
   }
 
   function resetScenario() {
+    const firstPhase = activeScenario.phaseScripts[0];
+
     setLayers(activeScenario.defaultLayers);
-    setSelectedObjectId(activeScenario.defaultSelectedObjectId);
-    setCameraMode("focus");
+    setSelectedObjectId(firstPhase?.selectObjectId || activeScenario.defaultSelectedObjectId);
+    setCameraMode(firstPhase?.cameraMode || "focus");
     setProgress(0);
     setIsPlaying(false);
   }
 
   function jumpToPhase(index: number) {
-    const denominator = Math.max(1, activeScenario.phases.length - 1);
+    const denominator = Math.max(1, activeScenario.phaseScripts.length - 1);
+    const phase = activeScenario.phaseScripts[index];
+
     setProgress(index / denominator);
+    setSelectedObjectId(phase?.selectObjectId || activeScenario.defaultSelectedObjectId);
+    setCameraMode(phase?.cameraMode || "focus");
     setIsPlaying(false);
   }
 
@@ -159,13 +185,14 @@ export function ScenarioDemo() {
               selectedObjectId={selectedObjectId}
               onSelectObject={setSelectedObjectId}
               progress={progress}
+              isPlaying={isPlaying}
             />
           </div>
 
           <ScenarioInspector
             scenario={activeScenario}
             selectedObject={selectedObject}
-            activePhase={activeScenario.phases[activePhaseIndex]}
+            activePhase={activePhaseScript.name}
             progress={progress}
           />
         </div>
