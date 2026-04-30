@@ -7,6 +7,9 @@ import type {
   ScenarioId,
   ScenarioLayerKey,
   ScenarioLayers,
+  ScenarioObject,
+  ScenarioRoute,
+  ScenarioZone,
 } from "../../types/scenario";
 import { HeroEarthCanvas } from "../earth/HeroEarthCanvas";
 import { ScenarioPanel } from "./ScenarioPanel";
@@ -15,65 +18,261 @@ import { ScenarioTimeline } from "./ScenarioTimeline";
 
 const PLAY_DURATION_MS = 14000;
 
+const emergencyStoryObjects: ScenarioObject[] = [
+  {
+    id: "city-entry-signal",
+    name: "01 Unknown Signal",
+    type: "model",
+    lat: 35.61,
+    lon: 51.53,
+    color: "#fbbf24",
+    status: "Inbound",
+    properties: {
+      Type: "Unidentified moving object",
+      Direction: "Entering city grid",
+      Speed: "42 km/h",
+      Risk: "Unconfirmed",
+    },
+  },
+  {
+    id: "sensor-gate-east",
+    name: "02 Sensor Gate East",
+    type: "pin",
+    lat: 35.66,
+    lon: 51.48,
+    color: "#22d3ee",
+    status: "Triggered",
+    properties: {
+      Type: "Urban sensor gate",
+      Detection: "Thermal + motion",
+      Confidence: "87%",
+      Status: "Triggered",
+    },
+  },
+  {
+    id: "incident-core",
+    name: "03 Hazard Source",
+    type: "zone",
+    lat: 35.75,
+    lon: 51.42,
+    color: "#f87171",
+    status: "Critical",
+    properties: {
+      Type: "Confirmed emergency",
+      Severity: "High",
+      Radius: "8 km",
+      Status: "Expanding",
+    },
+  },
+  {
+    id: "command-center",
+    name: "04 Command Center",
+    type: "pin",
+    lat: 35.69,
+    lon: 51.31,
+    color: "#22d3ee",
+    status: "Online",
+    properties: {
+      Type: "Command node",
+      Role: "Coordination",
+      Units: "2 active",
+      Status: "Dispatching",
+    },
+  },
+  {
+    id: "response-unit-a",
+    name: "05 Response Unit A",
+    type: "model",
+    lat: 35.65,
+    lon: 51.5,
+    color: "#fbbf24",
+    status: "Moving",
+    properties: {
+      Type: "Response unit",
+      ETA: "12 min",
+      Route: "Primary",
+      Status: "Moving",
+    },
+  },
+  {
+    id: "medical-point",
+    name: "06 Medical Point",
+    type: "pin",
+    lat: 35.71,
+    lon: 51.25,
+    color: "#34d399",
+    status: "Ready",
+    properties: {
+      Type: "Medical support",
+      Capacity: "Available",
+      Role: "Triage",
+      Status: "Ready",
+    },
+  },
+  {
+    id: "evacuation-node",
+    name: "07 Evacuation Node",
+    type: "pin",
+    lat: 35.79,
+    lon: 51.35,
+    color: "#a78bfa",
+    status: "Prepared",
+    properties: {
+      Type: "Evacuation node",
+      Capacity: "Medium",
+      Role: "Civilian movement",
+      Status: "Prepared",
+    },
+  },
+];
+
+const emergencyStoryRoutes: ScenarioRoute[] = [
+  {
+    id: "signal-track-route",
+    name: "Unknown Signal → Hazard Source",
+    fromObjectId: "city-entry-signal",
+    toObjectId: "incident-core",
+    color: "#fbbf24",
+  },
+  {
+    id: "sensor-alert-route",
+    name: "Sensor Gate → Command Center",
+    fromObjectId: "sensor-gate-east",
+    toObjectId: "command-center",
+    color: "#22d3ee",
+  },
+  {
+    id: "dispatch-route",
+    name: "Command → Hazard Source",
+    fromObjectId: "command-center",
+    toObjectId: "incident-core",
+    color: "#22d3ee",
+  },
+  {
+    id: "unit-response-route",
+    name: "Response Unit → Hazard Source",
+    fromObjectId: "response-unit-a",
+    toObjectId: "incident-core",
+    color: "#fbbf24",
+  },
+  {
+    id: "medical-support-route",
+    name: "Medical Point → Hazard Source",
+    fromObjectId: "medical-point",
+    toObjectId: "incident-core",
+    color: "#34d399",
+  },
+];
+
+const emergencyStoryZones: ScenarioZone[] = [
+  {
+    id: "danger-zone",
+    name: "Danger Zone · 8 km",
+    lat: 35.75,
+    lon: 51.42,
+    radiusKm: 8,
+    color: "#f87171",
+  },
+  {
+    id: "warning-zone",
+    name: "Warning Zone · 16 km",
+    lat: 35.75,
+    lon: 51.42,
+    radiusKm: 16,
+    color: "#fbbf24",
+  },
+];
+
 const emergencyStorySteps = [
   {
-    name: "01 · City Anomaly",
+    name: "01 · Object Enters City",
     description:
-      "A new heat signature appears inside the city. The map starts clean so the user first understands where the emergency begins.",
-    objects: ["incident-core"],
+      "An unidentified moving signal enters the Tehran urban grid. Only one marker is shown so the viewer understands the story starts with a single suspicious movement.",
+    cameraMode: "focus" as CameraMode,
+    cameraTargetId: "city-entry-signal",
+    selectObjectId: "city-entry-signal",
+    routeReveal: 0.12,
+    objects: ["city-entry-signal"],
     routes: [],
     zones: [],
   },
   {
-    name: "02 · Sensor Confirmation",
+    name: "02 · Sensors Detect Threat",
     description:
-      "The detection is confirmed. Danger and warning rings are created around the incident before response assets appear.",
-    objects: ["incident-core"],
-    routes: [],
+      "The signal crosses an urban sensor gate. The sensor appears, the track is drawn, and the hazard source is identified.",
+    cameraMode: "report" as CameraMode,
+    cameraTargetId: "signal-track-route",
+    selectObjectId: "sensor-gate-east",
+    routeReveal: 0.42,
+    objects: ["city-entry-signal", "sensor-gate-east", "incident-core"],
+    routes: ["signal-track-route"],
+    zones: [],
+  },
+  {
+    name: "03 · Risk Area Created",
+    description:
+      "The system creates danger and warning zones around the confirmed hazard. Command has not dispatched units yet, so the map remains focused on risk definition.",
+    cameraMode: "report" as CameraMode,
+    cameraTargetId: "incident-core",
+    selectObjectId: "danger-zone",
+    routeReveal: 0.55,
+    objects: ["city-entry-signal", "sensor-gate-east", "incident-core"],
+    routes: ["signal-track-route"],
     zones: ["danger-zone", "warning-zone"],
   },
   {
-    name: "03 · Command Dispatch",
+    name: "04 · Command Dispatch",
     description:
-      "The command center comes online and receives the alert. The first dispatch connection is drawn from command to the incident.",
-    objects: ["incident-core", "command-center"],
-    routes: ["dispatch-route"],
+      "The command center comes online after confirmation. The alert route is drawn from the sensor gate to command, then command starts the response.",
+    cameraMode: "focus" as CameraMode,
+    cameraTargetId: "command-center",
+    selectObjectId: "command-center",
+    routeReveal: 0.68,
+    objects: [
+      "sensor-gate-east",
+      "incident-core",
+      "command-center",
+      "response-unit-a",
+    ],
+    routes: ["sensor-alert-route", "dispatch-route"],
     zones: ["danger-zone", "warning-zone"],
   },
   {
-    name: "04 · Response Unit Moving",
+    name: "05 · Unit Approaches Incident",
     description:
-      "Response Unit A is activated and moves along the primary response route toward the incident core.",
+      "Response Unit A moves toward the hazard source. The camera follows the response path instead of showing unrelated pins.",
+    cameraMode: "follow" as CameraMode,
+    cameraTargetId: "unit-response-route",
+    selectObjectId: "response-unit-a",
+    routeReveal: 0.9,
     objects: ["incident-core", "command-center", "response-unit-a"],
     routes: ["dispatch-route", "unit-response-route"],
     zones: ["danger-zone", "warning-zone"],
   },
   {
-    name: "05 · Support Arrives",
+    name: "06 · Full Response Report",
     description:
-      "Medical and evacuation support nodes appear after the response route is established, showing the operation expanding step by step.",
+      "The final report reveals the complete operation: hazard, sensor, command, response unit, medical point, evacuation node, risk rings, and all support routes.",
+    cameraMode: "report" as CameraMode,
+    cameraTargetId: "incident-core",
+    selectObjectId: "incident-core",
+    routeReveal: 1,
     objects: [
+      "city-entry-signal",
+      "sensor-gate-east",
       "incident-core",
       "command-center",
       "response-unit-a",
       "medical-point",
       "evacuation-node",
     ],
-    routes: ["dispatch-route", "unit-response-route", "medical-support-route"],
-    zones: ["danger-zone", "warning-zone"],
-  },
-  {
-    name: "06 · Operational Report",
-    description:
-      "The final view shows the complete response picture: incident, risk rings, command, unit, medical support, evacuation node, and all routes.",
-    objects: [
-      "incident-core",
-      "command-center",
-      "response-unit-a",
-      "medical-point",
-      "evacuation-node",
+    routes: [
+      "signal-track-route",
+      "sensor-alert-route",
+      "dispatch-route",
+      "unit-response-route",
+      "medical-support-route",
     ],
-    routes: ["dispatch-route", "unit-response-route", "medical-support-route"],
     zones: ["danger-zone", "warning-zone"],
   },
 ];
@@ -95,14 +294,27 @@ function createStoryScenario(scenario: Scenario, phaseIndex: number): Scenario {
 
   return {
     ...scenario,
-    phaseScripts: scenario.phaseScripts.map((phase, index) => ({
-      ...phase,
-      name: emergencyStorySteps[index]?.name || phase.name,
-      description: emergencyStorySteps[index]?.description || phase.description,
+    description:
+      "A progressive incident-response story: suspicious city entry, sensor detection, risk-zone creation, command dispatch, response movement, and final operational report.",
+    defaultSelectedObjectId: "city-entry-signal",
+    phases: emergencyStorySteps.map((storyStep) => storyStep.name),
+    phaseScripts: emergencyStorySteps.map((storyStep) => ({
+      name: storyStep.name,
+      description: storyStep.description,
+      cameraMode: storyStep.cameraMode,
+      cameraTargetId: storyStep.cameraTargetId,
+      selectObjectId: storyStep.selectObjectId,
+      routeReveal: storyStep.routeReveal,
     })),
-    objects: scenario.objects.filter((object) => visibleObjects.has(object.id)),
-    routes: scenario.routes.filter((route) => visibleRoutes.has(route.id)),
-    zones: scenario.zones.filter((zone) => visibleZones.has(zone.id)),
+    objects: emergencyStoryObjects.filter((object) => visibleObjects.has(object.id)),
+    routes: emergencyStoryRoutes.filter((route) => visibleRoutes.has(route.id)),
+    zones: emergencyStoryZones.filter((zone) => visibleZones.has(zone.id)),
+    cameraTargets: {
+      global: { lat: 35.7, lon: 51.4, distance: 820000 },
+      focus: { lat: 35.7, lon: 51.43, distance: 135000 },
+      follow: { lat: 35.69, lon: 51.46, distance: 115000 },
+      report: { lat: 35.71, lon: 51.4, distance: 260000 },
+    },
   };
 }
 
@@ -186,7 +398,10 @@ export function ScenarioDemo() {
 
   function selectScenario(id: ScenarioId) {
     const scenario = getScenarioById(id);
-    const firstPhase = scenario.phaseScripts[0];
+    const firstPhase =
+      scenario.id === "emergency-response"
+        ? emergencyStorySteps[0]
+        : scenario.phaseScripts[0];
 
     setActiveScenarioId(id);
     setLayers(scenario.defaultLayers);
@@ -204,7 +419,10 @@ export function ScenarioDemo() {
   }
 
   function resetScenario() {
-    const firstPhase = activeScenario.phaseScripts[0];
+    const firstPhase =
+      activeScenario.id === "emergency-response"
+        ? emergencyStorySteps[0]
+        : activeScenario.phaseScripts[0];
 
     setLayers(activeScenario.defaultLayers);
     setSelectedObjectId(firstPhase?.selectObjectId || activeScenario.defaultSelectedObjectId);
@@ -215,7 +433,10 @@ export function ScenarioDemo() {
 
   function jumpToPhase(index: number) {
     const denominator = Math.max(1, activeScenario.phaseScripts.length - 1);
-    const phase = activeScenario.phaseScripts[index];
+    const phase =
+      activeScenario.id === "emergency-response"
+        ? emergencyStorySteps[index]
+        : activeScenario.phaseScripts[index];
 
     setProgress(index / denominator);
     setSelectedObjectId(phase?.selectObjectId || activeScenario.defaultSelectedObjectId);
