@@ -1,0 +1,52 @@
+import type { DemoScenario } from "../../types/demo";
+
+export const routePlanningScenario: DemoScenario = {
+  id: "route-planning",
+  title: "Route Planning",
+  shortTitle: "Routes",
+  category: "Planning",
+  region: "Operational corridor",
+  summary: "A guided route-planning story from origin selection to route recommendation.",
+  businessValue:
+    "Helps teams compare primary and alternate routes with distance, ETA, and risk context.",
+  objects: [],
+  routes: [],
+  zones: [],
+  cameraTargets: [],
+  chapters: [
+    {
+      id: "origin-destination",
+      title: "Select Origin and Destination",
+      shortTitle: "Endpoints",
+      description: "Define where the operation starts and where it needs to go.",
+      businessInsight: "Route planning begins with a simple spatial decision that everyone can understand.",
+      visibleObjects: [],
+      visibleRoutes: [],
+      visibleZones: [],
+      selectedObjectId: "",
+      cameraMode: "global",
+      cameraTargetId: "",
+      actions: [],
+    },
+    {
+      id: "route-summary",
+      title: "Compare Route Summary",
+      shortTitle: "Summary",
+      description: "Show distance, ETA, risk avoided, and recommended route.",
+      businessInsight: "The final report should turn geography into an operational recommendation.",
+      visibleObjects: [],
+      visibleRoutes: [],
+      visibleZones: [],
+      selectedObjectId: "",
+      cameraMode: "report",
+      cameraTargetId: "",
+      actions: [],
+    },
+  ],
+  report: {
+    title: "Route recommendation report",
+    summary: "Route planning scenario placeholder.",
+    metrics: [],
+    recommendation: "Replace this skeleton with the full authored route story in Milestone 6.",
+  },
+};
