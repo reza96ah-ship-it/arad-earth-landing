@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { demoCopy } from "../../content/demoCopy";
 import { demoScenarios } from "../../data/scenarios/index";
 import { DemoActions } from "./DemoActions";
@@ -10,18 +11,38 @@ import { ScenarioViewport } from "./ScenarioViewport";
 import { ChapterNarrator } from "./ChapterNarrator";
 
 export function GuidedDemo() {
-  const activeScenario = demoScenarios[0];
-  const activeChapter = activeScenario.chapters[0];
+  const [activeScenarioId, setActiveScenarioId] = useState(demoScenarios[0].id);
+  const [activeChapterIndex, setActiveChapterIndex] = useState(0);
+
+  const activeScenario = useMemo(
+    () => demoScenarios.find((scenario) => scenario.id === activeScenarioId) || demoScenarios[0],
+    [activeScenarioId]
+  );
+
+  const activeChapter = activeScenario.chapters[activeChapterIndex] || activeScenario.chapters[0];
+
+  function selectScenario(id: string) {
+    setActiveScenarioId(id);
+    setActiveChapterIndex(0);
+  }
 
   return (
     <DemoShell>
-      <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
-        <ScenarioChooser scenarios={demoScenarios} activeScenarioId={activeScenario.id} />
+      <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)_320px]">
+        <ScenarioChooser
+          scenarios={demoScenarios}
+          activeScenarioId={activeScenario.id}
+          onSelectScenario={selectScenario}
+        />
 
         <div className="space-y-5">
-          <ScenarioViewport scenario={activeScenario} />
+          <ScenarioViewport scenario={activeScenario} chapter={activeChapter} />
           <ChapterNarrator chapter={activeChapter} />
-          <DemoTimeline chapters={activeScenario.chapters} activeChapterId={activeChapter?.id} />
+          <DemoTimeline
+            chapters={activeScenario.chapters}
+            activeChapterId={activeChapter?.id}
+            onSelectChapter={setActiveChapterIndex}
+          />
         </div>
 
         <div className="space-y-5">
